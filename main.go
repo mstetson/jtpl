@@ -7,22 +7,36 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"io/ioutil"
 	"os"
 )
 
 func main() {
+	file := flag.String("f", "", "read template from file")
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(),
-			"Usage: %s template-text < data > output\n",
+			"Usage: %s { -f template-file | template-text } < data > output\n",
 			flag.CommandLine.Name())
 		flag.PrintDefaults()
 	}
 	flag.Parse()
-	if flag.NArg() != 1 {
+
+	var tpl string
+	if *file != "" {
+		data, err := ioutil.ReadFile(*file)
+		if err != nil {
+			fmt.Fprint(os.Stderr, flag.CommandLine.Name(), ": ", err, "\n")
+			os.Exit(1)
+		}
+		tpl = string(data)
+	} else if flag.NArg() == 1 {
+		tpl = flag.Arg(0)
+	} else {
 		flag.Usage()
 		os.Exit(1)
 	}
-	err := run(os.Stdout, flag.Arg(0), os.Stdin)
+
+	err := run(os.Stdout, tpl, os.Stdin)
 	if err != nil {
 		fmt.Fprint(os.Stderr, flag.CommandLine.Name(), ": ", err, "\n")
 		os.Exit(1)

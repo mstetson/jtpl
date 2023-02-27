@@ -9,13 +9,15 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	textTemplate "text/template"
 )
 
 func main() {
 	file := flag.String("f", "", "read template from file")
+	text := flag.Bool("text", false, "use text/template instead of html/template")
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(),
-			"Usage: %s { -f template-file | template-text } < data > output\n",
+			"Usage: %s [-text] { -f template-file | template-text } < data > output\n",
 			flag.CommandLine.Name())
 		flag.PrintDefaults()
 	}
@@ -36,15 +38,27 @@ func main() {
 		os.Exit(1)
 	}
 
-	err := run(os.Stdout, tpl, os.Stdin)
+	err := run(os.Stdout, tpl, os.Stdin, *text)
 	if err != nil {
 		fmt.Fprint(os.Stderr, flag.CommandLine.Name(), ": ", err, "\n")
 		os.Exit(1)
 	}
 }
 
-func run(out io.Writer, tpl string, data io.Reader) error {
-	t, err := template.New("").Parse(tpl)
+type anyTemplate interface {
+	Execute(io.Writer, interface{}) error
+}
+
+func run(out io.Writer, tpl string, data io.Reader, useText bool) error {
+	var (
+		t   anyTemplate
+		err error
+	)
+	if useText {
+		t, err = textTemplate.New("").Funcs(tplFuncs).Parse(tpl)
+	} else {
+		t, err = template.New("").Funcs(tplFuncs).Parse(tpl)
+	}
 	if err != nil {
 		return err
 	}

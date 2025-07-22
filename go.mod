@@ -1,3 +1,3 @@
-module bitbucket.org/classroomsystems/jtpl
+module github.com/mstetson/jtpl
 
 go 1.14
